@@ -1,7 +1,10 @@
 {
-  "name": "tilda-nextjs-proxy",
+  "name": "tilda-proxy", 
   "version": "1.0.0",
   "dependencies": {
     "axios": "1.6.0"
+  },
+  "scripts": {
+    "install": "npm install --legacy-peer-deps"
   }
 }
