@@ -1,4 +1,6 @@
-export default async function handler(request, response) {
+const axios = require('axios');
+
+module.exports = async (request, response) => {
   // Разрешаем CORS
   response.setHeader('Access-Control-Allow-Origin', '*');
   response.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -24,45 +26,38 @@ export default async function handler(request, response) {
     }
 
     // Отправляем в Airtable
-    const airtableResponse = await fetch(
+    const airtableResponse = await axios.post(
       `https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/${process.env.AIRTABLE_TABLE_NAME}`,
       {
-        method: 'POST',
+        fields: {
+          "Name": name || '',
+          "Email": email || '',
+          "Phone": phone || '',
+          "Message": message || '',
+          "Date": new Date().toISOString(),
+          "Source": "Tilda Form"
+        }
+      },
+      {
         headers: {
           'Authorization': `Bearer ${process.env.AIRTABLE_API_KEY}`,
           'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          fields: {
-            "Name": name || '',
-            "Email": email || '',
-            "Phone": phone || '',
-            "Message": message || '',
-            "Date": new Date().toISOString(),
-            "Source": "Tilda Form"
-          }
-        })
+        }
       }
     );
-
-    const result = await airtableResponse.json();
-
-    if (!airtableResponse.ok) {
-      throw new Error(result.error?.message || 'Airtable error');
-    }
 
     // Успешный ответ
     response.status(200).json({
       success: true,
       message: 'Data saved to Airtable',
-      id: result.id
+      id: airtableResponse.data.id
     });
 
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error:', error.response?.data || error.message);
     response.status(500).json({
       success: false,
-      error: error.message
+      error: error.response?.data?.error?.message || error.message
     });
   }
-}
+};
