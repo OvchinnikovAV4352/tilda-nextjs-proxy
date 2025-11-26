@@ -13,17 +13,56 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log('✅ API is working!');
-    
-    return res.status(200).json({ 
-      success: true, 
-      message: 'API is working!' 
+    const { name, email, phone, message } = req.body;
+
+    // Проверяем обязательные поля
+    if (!name || !email) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Name and email are required' 
+      });
+    }
+
+    // Отправляем в Airtable
+    const airtableResponse = await fetch(
+      `https://api.airtable.com/v0/${process.env.AIRTABLE_BASE_ID}/${process.env.AIRTABLE_TABLE_NAME}`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.AIRTABLE_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          fields: {
+            "Name": name || '',
+            "Email": email || '',
+            "Phone": phone || '',
+            "Message": message || '',
+            "Date": new Date().toISOString(),
+            "Source": "Tilda Form"
+          }
+        })
+      }
+    );
+
+    const result = await airtableResponse.json();
+
+    if (!airtableResponse.ok) {
+      throw new Error(result.error?.message || 'Airtable error');
+    }
+
+    // Успешный ответ
+    res.status(200).json({
+      success: true,
+      message: 'Data saved to Airtable',
+      id: result.id
     });
-    
+
   } catch (error) {
-    return res.status(500).json({ 
-      success: false, 
-      error: 'Server error' 
+    console.error('Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
     });
   }
 }
